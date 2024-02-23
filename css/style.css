@@ -11,3 +11,6 @@
     transform: translate(-50%, -50%);
     background-color: #4d79bc;
 }
+#layer1, #layer2, #layer3, #layer4, #player, #angler1, #angler2, #lucky{
+    display: none
+}
