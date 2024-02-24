@@ -10,7 +10,13 @@
     left: 50%;
     transform: translate(-50%, -50%);
     background-color: #4d79bc;
+    .bangers-regular {
+        font-family: "Bangers", system-ui;
+        font-weight: 400;
+        font-style: normal;
+      }
+      
 }
-#layer1, #layer2, #layer3, #layer4, #player, #angler1, #angler2, #lucky{
+#layer1, #layer2, #layer3, #layer4, #player, #angler1, #angler2, #lucky, #projectile{
     display: none
 }

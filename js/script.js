@@ -38,14 +38,14 @@ window.addEventListener('load', function(){            //window load event liste
             this.height = 3;
             this.speed = 3;
             this.markedForDeletion = false;
+            this.image = document.getElementById('projectile');
         }
         update(){   
             this.x += this.speed;
             if(this.x > this.game.width * 0.8) this.markedForDeletion = true;
         }
         draw(context){
-            context.fillStyle = 'yellow';
-            context.fillRect(this.x, this.y, this.width, this.height);
+            context.drawImage(this.image, this.x, this.y);
         }
     }
     class Particle {
@@ -65,8 +65,11 @@ window.addEventListener('load', function(){            //window load event liste
             this.maxSpeed = 3;               
             this.projectiles = [];
             this.image = document.getElementById('player')
+            this.powerUp = false;
+            this.powerUpTimer = 0;
+            this.powerUpLimit = 10000;
         }
-        update(){                                    
+        update(deltaTime){                                    
             if (this.game.keys.includes('ArrowUp')) this.speedY = -this.maxSpeed;  
             else if (this.game.keys.includes('ArrowDown')) this.speedY = this.maxSpeed; 
             else this.speedY = 0;                      
@@ -82,6 +85,18 @@ window.addEventListener('load', function(){            //window load event liste
             } else {
                 this.frameX = 0;
             }
+            //power up
+            if (this.powerUp){
+                if (this.powerUpTimer > this.powerUpLimit){
+                    this.powerUp = false;
+                    this.powerUpTimer = 0;
+                    this.frameY = 0;
+                } else {
+                    this.powerUpTimer += deltaTime;
+                    this.frameY = 1;
+                    this.game.ammo += 0.1;
+                }
+            }
         }
         draw(context){                                                                 
             if (this.game.debug) context.strokeRect(this.x, this.y, this.width, this.height);    
@@ -96,6 +111,18 @@ window.addEventListener('load', function(){            //window load event liste
                 this.projectiles.push(new Projectile(this.game, this.x + 116, this.y + 30));
                 this.game.ammo--;
             }
+            if (this.powerUp) this.shootBottom();
+        }
+        shootBottom(){
+            if (this.game.ammo > 0){
+                this.projectiles.push(new Projectile(this.game, this.x + 116, this.y + 175));
+                this.game.ammo--;
+            }
+        }
+        enterPowerUp(){
+            this.powerUpTimer = 0;
+            this.powerUp = true;
+            this.game.ammo = this.game.maxAmmo;
         }
     }
     class Enemy {
@@ -104,8 +131,6 @@ window.addEventListener('load', function(){            //window load event liste
             this.x = this.game.width;
             this.speedX = Math.random() * -1.5 - 0.5;
             this.markedForDeletion = false;
-            this.lives = 5;
-            this.score = this.lives;
             this.frameX = 0;
             this.frameY = 0;
             this.maxFrame = 37;
@@ -135,16 +160,33 @@ window.addEventListener('load', function(){            //window load event liste
             this.y = Math.random() * (this.game.height * 0.9 - this.height);
             this.image = document.getElementById('angler1');
             this.frameY = Math.floor(Math.random() * 3);
+            this.lives = 2;
+            this.score = this.lives;
         }
     }
     class Angler2 extends Enemy {
         constructor(game){
             super(game);
-            this.width = 228;
-            this.height = 169;
+            this.width = 213;
+            this.height = 165;
             this.y = Math.random() * (this.game.height * 0.9 - this.height);
-            this.image = document.getElementById('angler1');
-            this.frameY = Math.floor(Math.random() * 3);
+            this.image = document.getElementById('angler2');
+            this.frameY = Math.floor(Math.random() * 2);
+            this.lives = 3;
+            this.score = this.lives;
+        }
+    }
+    class LuckyFish extends Enemy {
+        constructor(game){
+            super(game);
+            this.width = 99;
+            this.height = 95;
+            this.y = Math.random() * (this.game.height * 0.9 - this.height);
+            this.image = document.getElementById('lucky');
+            this.frameY = Math.floor(Math.random() * 2);
+            this.lives = 3;
+            this.score = 15;
+            this.type = 'lucky';
         }
     }
     class Layer {
@@ -191,7 +233,7 @@ window.addEventListener('load', function(){            //window load event liste
         constructor(game){
             this.game = game;
             this.fontSize = 25;
-            this.fontFamily = 'Helvetica';
+            this.fontFamily = 'bangers';
             this.color = 'white';
         }
         draw(context){
@@ -223,9 +265,9 @@ window.addEventListener('load', function(){            //window load event liste
                     message1 = 'You Lose!';
                     message2 = 'Try Again';
                 }
-                context.font = '50px ' + this.fontFamily;
+                context.font = '150px ' + this.fontFamily;
                 context.fillText(message1, this.game.width * 0.5, this.game.height * 0.5 - 40);
-                context.font = '25px ' + this.fontFamily;
+                context.font = '100px ' + this.fontFamily;
                 context.fillText(message2, this.game.width * 0.5, this.game.height * 0.5 + 40);
             }
             context.restore();
@@ -249,9 +291,9 @@ window.addEventListener('load', function(){            //window load event liste
             this.ammoInterval = 500;
             this.gameOver = false;
             this.score = 0;
-            this.winningScore = 10;
+            this.winningScore = 100;
             this.gameTime = 0;
-            this.timeLimit = 50000;
+            this.timeLimit = 5000;
             this.speed = 0.2;
             this.debug = true;
         }
@@ -271,6 +313,8 @@ window.addEventListener('load', function(){            //window load event liste
                 enemy.update();
                 if (this.checkCollision(this.Player, enemy)){
                     enemy.markedForDeletion = true;
+                    if(enemy.type === 'lucky') this.Player.enterPowerUp();
+                    else this.score--;
                 }
                 this.Player.projectiles.forEach(projectile => {
                     if (this.checkCollision(projectile, enemy)){
@@ -303,7 +347,10 @@ window.addEventListener('load', function(){            //window load event liste
             this.background.layer4.draw(context);
         }
         addEnemy(){
-            this.enemies.push(new Angler1(this));
+            const randomize = Math.random();
+            if (randomize < 0.3) this.enemies.push(new Angler1(this));
+            else if (randomize < 0.6) this.enemies.push(new Angler1(this));
+            else this.enemies.push(new LuckyFish(this));
             console.log(this.enemies);
         }
         checkCollision(rect1, rect2)    {
